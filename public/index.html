@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#121212">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="M365 Radar">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e3120b'/%3E%3Ccircle cx='32' cy='32' r='16' fill='none' stroke='white' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='5' fill='white'/%3E%3C/svg%3E">
+<title>M365 Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: an operations desk at a serious newspaper — calm, exact, nothing decorative.
+   IDEA: the wire-service front page: one status line up top, the day's numbers, then the wire.
+   PICTURE: the live status strip + 14-day wire volume chart; the feed itself is the working thing.
+   COLOUR and TYPE: white, ink #121212, red #e3120b for incidents & new, slate #2e6f8e for links; Source Serif 4 + Inter.
+   LAYOUT: red tab, headline, status strip, figures, tabs; feed + side rail on desktop, single column on phone. */
+:root{color-scheme:light dark;
+ --bg:light-dark(#fff,#10191e);--ink:light-dark(#121212,#eef2f4);--mute:light-dark(#5b6570,#9fb0ba);
+ --rule:light-dark(#d9dee2,#2a3a43);--panel:light-dark(#e3ecf0,#18262e);--red:#e3120b;--slate:light-dark(#2e6f8e,#7fb9d6);
+ --ok:light-dark(#1d7a46,#5fd08f);--warn:light-dark(#a15c00,#f0b35a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+a{color:var(--slate);text-decoration:none}a:hover{text-decoration:underline}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--slate);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;padding:0 max(4vw,16px)}
+header{border-bottom:1px solid var(--rule);padding:18px 0 14px}
+.tab{display:inline-block;background:var(--red);color:#fff;font-weight:700;font-size:13px;padding:3px 9px;border-radius:2px}
+.hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px;margin-top:10px}
+h1{font:600 clamp(32px,5vw,48px)/1.05 "Source Serif 4",Georgia,serif;margin:0;text-wrap:balance}
+.upd{color:var(--mute);font-size:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{border:1px solid var(--rule);background:transparent;border-radius:6px;padding:0 14px;min-height:44px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ok);display:inline-block}
+.dot.bad{background:var(--red)}.dot.warn{background:var(--warn)}
+/* status strip */
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin:18px 0}
+.cell{background:var(--bg);padding:14px 16px}
+.cell h3{margin:0 0 4px;font-size:13px;color:var(--mute);font-weight:500}
+.cell .v{font-weight:600;display:flex;gap:8px;align-items:center}
+.cell small{color:var(--mute);font-size:13px}
+/* figures + chart */
+.top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:28px;padding:6px 0 22px;border-bottom:1px solid var(--rule)}
+.figs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px;align-content:start}
+.fig1 b{display:block;font:600 clamp(30px,4vw,42px)/1 "Source Serif 4",serif}
+.fig1 span{font-size:14px;color:var(--mute)}
+.fig1.hot b{color:var(--red)}
+.chart{display:flex;flex-direction:column;gap:6px}
+.chart h2,.rail h2{font-size:15px;margin:0 0 6px}
+.bars{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px;align-items:end;height:150px;border-bottom:1px solid var(--ink)}
+.bar{display:flex;flex-direction:column-reverse;height:100%}
+.bar i{display:block}
+.xl{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px;font-size:13px;color:var(--mute);text-align:center}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--mute)}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+/* nav */
+nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--rule)}
+nav .wrap{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav a{flex:none;white-space:nowrap;padding:12px 12px;min-height:44px;color:var(--mute);font-weight:500;border-bottom:3px solid transparent;font-size:15px}
+nav a.on{color:var(--ink);border-color:var(--red);text-decoration:none}
+nav a em{font-style:normal;font-size:12px;background:var(--panel);border-radius:9px;padding:1px 6px;margin-left:4px;color:var(--ink)}
+/* controls */
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:16px 0 6px}
+.ctl input[type=search]{flex:1 1 240px;min-height:44px;border:1px solid var(--rule);border-radius:6px;padding:0 12px;background:var(--bg);font-size:16px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:8px}
+.chip{border:1px solid var(--rule);background:transparent;border-radius:16px;padding:0 12px;min-height:34px;cursor:pointer;font-size:14px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tog{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--mute);min-height:44px;cursor:pointer}
+/* body */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:32px;padding-bottom:60px}
+.feed{list-style:none;margin:0;padding:0}
+.feed li{border-bottom:1px solid var(--rule);padding:14px 0}
+.feed .t{font-weight:600;font-size:16.5px;line-height:1.35;color:var(--ink)}
+.feed .m{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:13px;color:var(--mute);margin-top:4px}
+.feed .s{font-size:14.5px;color:var(--mute);margin:6px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.new{color:#fff;background:var(--red);font-size:11px;font-weight:700;padding:1px 6px;border-radius:2px;vertical-align:2px;margin-right:6px}
+.tg{background:var(--panel);color:var(--ink);border-radius:3px;padding:0 6px}
+.st{font-weight:600}.st.dev{color:var(--warn)}.st.roll{color:var(--slate)}.st.done{color:var(--ok)}
+.score{display:inline-flex;align-items:center;gap:6px}
+.score u{display:inline-block;width:46px;height:6px;background:var(--panel);text-decoration:none;position:relative}
+.score u::after{content:"";position:absolute;inset:0;width:var(--w);background:var(--red)}
+.acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.acts .btn{min-height:36px;font-size:14px}
+.rail section{border-top:2px solid var(--ink);padding:10px 0 18px}
+.rail ul{list-style:none;margin:0;padding:0;font-size:14.5px}
+.rail li{padding:6px 0;border-bottom:1px solid var(--rule)}
+.rail p{font-size:14px;color:var(--mute);margin:4px 0}
+.empty{padding:28px 0;color:var(--mute)}
+.more{margin:16px 0}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+@media(max-width:900px){.main{grid-template-columns:minmax(0,1fr)}.top{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.xl span:nth-child(odd){visibility:hidden}.bars{height:110px}
+ table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--rule)}.stack td{display:flex;justify-content:space-between;gap:12px;border:0;padding:3px 0}.stack td::before{content:attr(data-l);color:var(--mute)}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <span class="tab">Live wire</span>
+  <div class="hd">
+    <h1 id="headline">Microsoft 365 radar</h1>
+    <div class="upd"><span class="dot" id="pulse"></span><span id="updated">Loading…</span><button class="btn" id="reload" type="button">Refresh</button></div>
+  </div>
+</div></header>
+
+<div class="wrap">
+  <div class="strip" id="strip"></div>
+  <div class="top">
+    <div class="figs" id="figs"></div>
+    <div class="chart"><h2>Wire volume, last 14 days</h2><div class="bars" id="bars"></div><div class="xl" id="xl"></div><div class="legend" id="legend"></div></div>
+  </div>
+</div>
+
+<nav><div class="wrap" id="tabs"></div></nav>
+
+<div class="wrap">
+  <div class="ctl">
+    <input type="search" id="q" placeholder="Search titles, MC IDs, products…" aria-label="Search">
+    <label class="tog"><input type="checkbox" id="onlyNew"> New since last visit</label>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="main">
+    <div><div id="view"></div></div>
+    <aside class="rail" id="rail"></aside>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+{
+const CATS={mc:['Message Center','#e3120b'],roadmap:['Roadmap','#2e6f8e'],blog:['Blogs & news','#8aa4b1'],leads:['Leads','#121212'],health:['Health','#a15c00']};
+const VIEWS=[['pulse','Front page'],['leads','Leads'],['health','Health'],['message-center','Message Center'],['roadmap','Roadmap'],['blogs','Blogs'],['events','Events'],['sources','Sources']];
+const VCAT={'message-center':'mc',roadmap:'roadmap',blogs:'blog',leads:'leads',health:'health'};
+const PRODUCTS=['SharePoint','Teams','Exchange','OneDrive','Entra','Intune','Purview','Copilot','Power Platform','Viva','Defender','Migration'];
+const PITCH='Hi — I saw your post about "{t}". I\'m Priyanshu Upadhyay, a Microsoft 365 solution architect and trainer (MS-102, SC-300, MD-102, AZ-104) with hands-on delivery across SharePoint, Teams, Exchange Online, Power Platform and cross-tenant migrations, and close to 10,000 engineers and end users trained. Happy to take a quick call to understand the scope. — InnovaticT Technologies, innovatict.com';
+const SAVED=[
+ ['LinkedIn · posts hiring SharePoint consultants','https://www.linkedin.com/search/results/content/?keywords=%22looking%20for%22%20sharepoint%20consultant&sortBy=%22date_posted%22'],
+ ['LinkedIn · posts seeking M365 trainers','https://www.linkedin.com/search/results/content/?keywords=%22microsoft%20365%22%20trainer%20needed&sortBy=%22date_posted%22'],
+ ['LinkedIn · M365 contract jobs','https://www.linkedin.com/jobs/search/?keywords=microsoft%20365%20consultant&f_JT=C&sortBy=DD'],
+ ['X · people asking for M365 help','https://x.com/search?q=(%22need%20a%22%20OR%20%22looking%20for%22)%20(sharepoint%20OR%20%22microsoft%20365%22%20OR%20%22tenant%20migration%22)&f=live'],
+ ['Upwork · SharePoint / M365 jobs','https://www.upwork.com/nx/search/jobs/?q=sharepoint%20OR%20%22microsoft%20365%22&sort=recency'],
+ ['Reddit · r/forhire hiring M365','https://www.reddit.com/r/forhire/search/?q=sharepoint%20OR%20%22microsoft%20365%22%20hiring&restrict_sr=1&sort=new'],
+];
+const OFFICIAL=[
+ ['Microsoft 365 status page','https://status.cloud.microsoft'],['@MSFT365Status on X','https://x.com/MSFT365Status'],['@Microsoft365 on X','https://x.com/Microsoft365'],
+ ['Admin center · Service health','https://admin.microsoft.com/#/servicehealth'],['Azure status','https://azure.status.microsoft/en-us/status'],['Microsoft 365 Roadmap','https://www.microsoft.com/microsoft-365/roadmap'],
+];
+const EVENTSITES=[['Microsoft Events','https://events.microsoft.com'],['Microsoft Ignite','https://ignite.microsoft.com'],['Microsoft 365 Community Conference','https://m365conf.com'],
+ ['ESPC (European SharePoint, Office 365 & Azure Conference)','https://www.sharepointeurope.com'],['Microsoft 365 & Power Platform community calls (PnP)','https://pnp.github.io/'],['Microsoft Tech Community','https://techcommunity.microsoft.com']];
+
+let D=null,prod=null,lastVisit=0,limit=60;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ago=t=>{const m=Math.round((Date.now()-t)/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.round(m/60);if(h<48)return h+'h ago';return Math.round(h/24)+'d ago'};
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1800)};
+const view=()=>{const h=location.hash.slice(1);return VIEWS.some(v=>v[0]===h)?h:'pulse'};
+const isNew=x=>lastVisit&&(x.firstSeen||x.date)>lastVisit;
+
+async function load(){
+  try{
+    if(window.__DATA__){D=window.__DATA__}else{const r=await fetch('data.json?'+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(r.status);D=await r.json()}
+    render();
+  }catch(e){$('#updated').textContent='Could not load data.json — the first scheduled run may not have finished yet.';$('#pulse').className='dot bad'}
+}
+
+function filtered(list){
+  const q=$('#q').value.trim().toLowerCase(),on=$('#onlyNew').checked;
+  return list.filter(x=>(!prod||(x.products||[]).includes(prod))&&(!on||isNew(x))&&(!q||(x.title+' '+x.summary+' '+(x.meta?.mc||'')+' '+(x.products||[]).join(' ')).toLowerCase().includes(q)));
+}
+
+function row(x){
+  const m=x.meta||{},bits=[`<span>${esc(x.srcName)}</span>`,`<span>${ago(x.date)}</span>`];
+  if(m.status){const c=/develop/i.test(m.status)?'dev':/rolling/i.test(m.status)?'roll':'done';bits.push(`<span class="st ${c}">${esc(m.status)}</span>`)}
+  if(m.release)bits.push(`<span>${esc(m.release)}</span>`);
+  if(m.ga)bits.push(`<span>GA ${esc(m.ga)}</span>`);
+  if(m.actBy)bits.push(`<span class="st dev">Act by ${esc(m.actBy.slice(0,10))}</span>`);
+  if(m.severity&&x.cat==='health')bits.push(`<span class="st dev">${esc(m.severity)}</span>`);
+  if(m.sub)bits.push(`<span>${esc(m.sub)}</span>`);
+  if(m.thread)bits.push(`<span>${esc(m.thread)}</span>`);
+  if(m.budget)bits.push(`<span class="st">${esc(m.budget)}</span>`);
+  if(m.bids!==''&&m.bids!=null)bits.push(`<span>${esc(m.bids)} bids</span>`);
+  if(x.cat==='leads')bits.push(`<span class="score" title="Fit score">fit<u style="--w:${Math.min(100,x.score*6)}%"></u></span>`);
+  const tags=[...new Set([...(x.products||[]),...(x.roles||[])])].map(t=>`<span class="tg">${esc(t)}</span>`).join('');
+  const acts=x.cat==='leads'?`<div class="acts"><a class="btn" href="${esc(x.url)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center">Open post</a><button class="btn" type="button" data-pitch="${esc(x.id)}">Copy pitch</button></div>`:'';
+  return `<li>${isNew(x)?'<span class="new">NEW</span>':''}<a class="t" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a>
+  <div class="m">${bits.join('')}${tags}</div>${x.summary?`<p class="s">${esc(x.summary)}</p>`:''}${acts}</li>`;
+}
+
+function list(items,emptyMsg){
+  const f=filtered(items);
+  if(!f.length)return `<p class="empty">${emptyMsg||'Nothing matches these filters.'}</p>`;
+  return `<ul class="feed">${f.slice(0,limit).map(row).join('')}</ul>${f.length>limit?`<button class="btn more" type="button" id="more">Show more (${f.length-limit} left)</button>`:''}`;
+}
+
+function render(){
+  const I=D.items,now=Date.now(),day=864e5;
+  const ok=D.sources.filter(s=>s.ok).length;
+  $('#updated').textContent=`Updated ${ago(Date.parse(D.generated_at))} · ${ok}/${D.sources.length} sources live · refreshes every ${D.next_run_minutes||15} min`;
+  const inc=I.filter(x=>x.cat==='health');
+  const th=D.tenant_health;
+  const degraded=th?th.filter(s=>!/serviceOperational|serviceRestored/i.test(s.status)):[];
+  $('#pulse').className='dot'+(inc.length||degraded.length?' bad':'');
+  $('#headline').textContent=inc.length||degraded.length?`${inc.length+degraded.length} active service issue${inc.length+degraded.length>1?'s':''} on the wire`:'Microsoft 365 radar: all quiet on service health';
+  const last24=c=>I.filter(x=>x.cat===c&&now-x.date<day).length;
+  const azure=D.sources.find(s=>s.id==='azure-status');
+  $('#strip').innerHTML=[
+    `<div class="cell"><h3>Azure platform</h3><div class="v"><span class="dot ${azure&&!azure.ok?'warn':inc.some(x=>x.src==='azure-status')?'bad':''}"></span>${azure&&!azure.ok?'Feed unreachable':inc.some(x=>x.src==='azure-status')?inc.filter(x=>x.src==='azure-status').length+' active incident(s)':'No active incidents'}</div><small>From azure.status.microsoft</small></div>`,
+    th?`<div class="cell"><h3>Your tenant</h3><div class="v"><span class="dot ${degraded.length?'bad':''}"></span>${degraded.length?degraded.length+' service(s) degraded':'All '+th.length+' services healthy'}</div><small>${degraded.slice(0,3).map(s=>esc(s.service)).join(', ')||'Microsoft Graph service health'}</small></div>`
+       :`<div class="cell"><h3>Your tenant</h3><div class="v"><span class="dot warn"></span>Not connected</div><small>Add Graph secrets for live tenant health and your own Message Center</small></div>`,
+    `<div class="cell"><h3>Microsoft 365 public status</h3><div class="v"><a href="https://status.cloud.microsoft" target="_blank" rel="noopener">status.cloud.microsoft</a></div><small>Plus <a href="https://x.com/MSFT365Status" target="_blank" rel="noopener">@MSFT365Status</a> for outage posts</small></div>`
+  ].join('');
+  const figs=[['mc','Message Center posts, 24h'],['roadmap','Roadmap changes, 24h'],['blog','Blog posts, 24h'],['leads','New leads, 24h']];
+  $('#figs').innerHTML=figs.map(([c,l])=>{const n=last24(c);return `<div class="fig1${c==='leads'&&n?' hot':''}"><b>${n}</b><span>${l}</span></div>`}).join('');
+  // chart
+  const days=[...Array(14)].map((_,i)=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()-(13-i)*day});
+  const order=['mc','roadmap','blog','leads'];
+  const counts=days.map(d=>order.map(c=>I.filter(x=>x.cat===c&&x.date>=d&&x.date<d+day).length));
+  const max=Math.max(1,...counts.map(a=>a.reduce((s,n)=>s+n,0)));
+  $('#bars').innerHTML=counts.map((a,i)=>`<div class="bar" title="${new Date(days[i]).toDateString()}: ${a.reduce((s,n)=>s+n,0)} items">${a.map((n,j)=>`<i style="height:${n/max*100}%;background:${CATS[order[j]][1]}"></i>`).join('')}</div>`).join('');
+  $('#xl').innerHTML=days.map(d=>`<span>${new Date(d).getDate()}</span>`).join('');
+  $('#legend').innerHTML=order.map(c=>`<span><i style="background:${CATS[c][1]}"></i>${CATS[c][0]}</span>`).join('');
+  // tabs
+  const v=view();
+  const cnt=k=>k==='events'?I.filter(x=>x.event).length:VCAT[k]?I.filter(x=>x.cat===VCAT[k]).length:'';
+  $('#tabs').innerHTML=VIEWS.map(([k,l])=>`<a href="#${k}" class="${k===v?'on':''}">${l}${cnt(k)!==''?`<em>${cnt(k)}</em>`:''}</a>`).join('');
+  $('#chips').innerHTML=v==='sources'?'':['All',...PRODUCTS].map(p=>`<button type="button" class="chip ${(p==='All'&&!prod)||p===prod?'on':''}" data-p="${p}">${p}</button>`).join('');
+  // view
+  let html='';
+  if(v==='pulse'){
+    const hotLeads=I.filter(x=>x.cat==='leads').sort((a,b)=>b.score-a.score||b.date-a.date).slice(0,5);
+    html=`<h2 style="font-size:15px;margin:6px 0 0">Best-fit leads</h2>${list(hotLeads,'No leads match right now — they arrive every 15 minutes.')}
+      <h2 style="font-size:15px;margin:24px 0 0">Latest on the wire</h2>${list(I.filter(x=>x.cat!=='leads'))}`;
+  }else if(v==='events'){html=list(I.filter(x=>x.event),'No event announcements in the last 45 days.')}
+  else if(v==='sources'){
+    html=`<table class="stack"><thead><tr><th>Source</th><th>Area</th><th>Status</th><th class="n">Items</th><th class="n">Time</th></tr></thead><tbody>${D.sources.map(s=>`<tr><td data-l="Source">${esc(s.name)}</td><td data-l="Area">${esc(CATS[s.cat]?.[0]||s.cat)}</td><td data-l="Status">${s.ok?'<span class="st done">Live</span>':`<span class="st dev">Failing</span> <small>${esc(s.error)}</small>`}</td><td class="n" data-l="Items">${s.count}</td><td class="n" data-l="Time">${s.ms} ms</td></tr>`).join('')}</tbody></table>`;
+  }else{
+    const c=VCAT[v];let items=I.filter(x=>x.cat===c);
+    if(c==='leads')items=items.sort((a,b)=>(b.date-a.date));
+    html=list(items,c==='health'?'No active incidents. Quiet is good.':undefined);
+  }
+  $('#view').innerHTML=html;
+  // rail
+  const rail=[];
+  if(v==='leads'||v==='pulse')rail.push(`<section><h2>Saved searches</h2><p>Platforms without an open feed. One tap opens a live search.</p><ul>${SAVED.map(([l,u])=>`<li><a href="${u}" target="_blank" rel="noopener">${l}</a></li>`).join('')}</ul></section>`);
+  if(v==='events')rail.push(`<section><h2>Where events are announced</h2><ul>${EVENTSITES.map(([l,u])=>`<li><a href="${u}" target="_blank" rel="noopener">${l}</a></li>`).join('')}</ul></section>`);
+  rail.push(`<section><h2>Official channels</h2><ul>${OFFICIAL.map(([l,u])=>`<li><a href="${u}" target="_blank" rel="noopener">${l}</a></li>`).join('')}</ul></section>`);
+  const failing=D.sources.filter(s=>!s.ok);
+  if(failing.length)rail.push(`<section><h2>Needs attention</h2><ul>${failing.map(s=>`<li>${esc(s.name)}<p>${esc(s.error)}</p></li>`).join('')}</ul></section>`);
+  $('#rail').innerHTML=rail.join('');
+}
+
+document.addEventListener('click',e=>{
+  const c=e.target.closest('[data-p]');if(c){prod=c.dataset.p==='All'?null:c.dataset.p;limit=60;render();return}
+  if(e.target.id==='more'){limit+=60;render();return}
+  const p=e.target.closest('[data-pitch]');
+  if(p){const x=D.items.find(i=>i.id===p.dataset.pitch);const txt=PITCH.replace('{t}',x.title.slice(0,90));
+    navigator.clipboard?.writeText(txt).then(()=>toast('Pitch copied — paste it into your reply'),()=>{window.prompt?.('Copy this',txt);toast('Copy failed — select the text manually')})}
+});
+$('#q').addEventListener('input',()=>{limit=60;render()});
+$('#onlyNew').addEventListener('change',render);
+$('#reload').addEventListener('click',load);
+addEventListener('hashchange',()=>{limit=60;render();scrollTo({top:$('nav').offsetTop})});
+lastVisit=store.get('radar.lastVisit',0);
+addEventListener('pagehide',()=>store.set('radar.lastVisit',Date.now()));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')store.set('radar.lastVisit',Date.now());else if(!window.__DATA__)load()});
+load();
+if(!window.__DATA__)setInterval(load,5*60*1000);
+}
+</script>
+</body>
+</html>
